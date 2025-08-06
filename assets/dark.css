@@ -1,0 +1,72 @@
+/* === Global Layout === */
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #1e1e1e;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+
+/* === Headings and Labels === */
+h1, h2, h3, h4, h5, h6, label {
+    color: white;
+}
+
+/* === Inputs and Text Areas === */
+input, textarea {
+    background-color: #2c2c2c;
+    color: white;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 6px;
+}
+
+/* === Buttons === */
+button {
+    background-color: #444;
+    color: white;
+    border: 1px solid #666;
+    border-radius: 5px;
+    padding: 6px 12px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #555;
+}
+
+/* === Dropdown (dcc.Dropdown) === */
+.Select-control,
+.Select-menu-outer,
+.Select-value,
+.Select-option {
+    background-color: #2c2c2c !important;
+    color: white !important;
+    border-color: #555 !important;
+}
+
+.VirtualizedSelectFocusedOption {
+    background-color: #3a3a3a !important;
+}
+
+/* === Radio Items (dcc.RadioItems) === */
+input[type="radio"] {
+    accent-color: white;
+}
+.RadioItems label {
+    color: white;
+}
+
+/* === Dash DataTable === */
+.dash-table-container .dash-cell {
+    background-color: #2c2c2c !important;
+    color: white !important;
+    border: 1px solid #444 !important;
+}
+
+.dash-table-container .dash-header {
+    background-color: #3a3a3a !important;
+    color: white !important;
+    font-weight: bold;
+}
