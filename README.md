@@ -5,7 +5,7 @@ It uses a configuration file for inputs and an external CSS file for visual them
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### 1. Clone the Repository
 
@@ -30,7 +30,7 @@ pip install -r requirements.txt
 
 ---
 
-## 🧾 Project Structure
+##  Project Structure
 
 ```
 plot-comparison/
@@ -45,26 +45,24 @@ plot-comparison/
 
 ---
 
-## ⚙️ Configuration (`config.json`)
+## Configuration (`config.json`)
 
 The `config.json` file contains runtime parameters like:
 
 - File paths for input data
-- Output plot preferences
-- Any comparison logic or flags used by the script
 
 Make sure to update this file as needed before running the script.
 
 ---
 
-## 🎨 Styling (`assets/dark.css`)
+## Styling (`assets/dark.css`)
 
 This CSS file defines the theme for any HTML or GUI-based visual output.  
 You can customize colors, fonts, or layout by editing `assets/dark.css`.
 
 ---
 
-## ▶️ Running the Script
+## Running the Script
 
 After setting up the environment and configuration, run the tool with:
 
@@ -76,14 +74,14 @@ python "plot comparison.py"
 
 ---
 
-## 📄 License
+## License
 
 > A license will be added before public release.  
 > Until then, please do not reuse, redistribute, or share this project outside the approved team.
 
 ---
 
-## 👥 Collaborators
+## Collaborators
 
 This is a private, in-progress project intended for internal collaboration.  
 Contact the repository owner for access or questions.
