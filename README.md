@@ -1,6 +1,6 @@
 # Plot Comparison Tool
 
-This project provides a Python-based tool for generating and comparing visual plots.  
+This project provides a Python-based tool for comparing a measured spectrum to a .cat, assign transitions and export a .lin file..  
 It uses a configuration file for inputs and an external CSS file for visual theming.
 
 ---
@@ -36,7 +36,7 @@ pip install -r requirements.txt
 plot-comparison/
 │
 ├── plot comparison.py       # Main script for running plot comparison
-├── config.json              # Configuration file (input/output settings, etc.)
+├── config.json              # Configuration file (input)
 ├── requirements.txt         # Dependencies needed to run the project
 ├── assets/
 │   └── dark.css             # Optional CSS styling for visual output
