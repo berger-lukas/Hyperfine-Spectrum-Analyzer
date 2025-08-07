@@ -67,7 +67,7 @@ You can customize colors, fonts, or layout by editing `assets/dark.css`.
 After setting up the environment and configuration, run the tool with:
 
 ```bash
-python "plot comparison.py"
+python "plotcomparison.py"
 ```
 
 > Ensure your virtual environment is activated before running the script.
