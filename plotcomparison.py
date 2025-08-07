@@ -19,55 +19,122 @@ import json
 # Load configuration
 with open("config.json", "r") as f:
     config = json.load(f)
-
+qn_label_map = config.get("qn_labels", {})
 cat_file_path = config["cat_file"]
 csv_file_path = config["csv_file"]
 
 
 # === Load Simulated Spectrum ===
-sim_data = []
-with open(cat_file_path) as f:
-    for line in f:
-        try:
-            freq = float(line[0:13].strip())
-            logI = float(line[21:30].strip())
-            E_low = float(line[32:41].strip())
-            upper_J = int(line[55:57].strip())
-            upper_Ka = int(line[57:59].strip())
-            upper_Kc = int(line[59:61].strip())
-            upper_F = int(line[61:63].strip())
-            lower_J = int(line[67:69].strip())
-            lower_Ka = int(line[69:71].strip())
-            lower_Kc = int(line[71:73].strip())
-            lower_F = int(line[73:75].strip())
-            intensity = 10 ** logI
+def parse_cat_file(filepath):
+    sim_data = []
+    max_qns = 0
 
-            sim_data.append({
-                "Freq": freq,
-                "Intensity": intensity,
-                "Eu": E_low,
-                "UpperJ": upper_J,
-                "UpperKa": upper_Ka,
-                "UpperKc": upper_Kc,
-                "UpperF": upper_F,
-                "LowerJ": lower_J,
-                "LowerKa": lower_Ka,
-                "LowerKc": lower_Kc,
-                "LowerF": lower_F
-            })
-        except:
-            continue
+    with open(filepath) as f:
+        for line in f:
+            try:
+                freq = float(line[0:13].strip())
+                logI = float(line[21:30].strip())
+                E_low = float(line[32:41].strip())
+                countQN = int(line[54:55].strip())
 
-sim_df = pd.DataFrame(sim_data)
+                entry = {
+                    "Freq": freq,
+                    "Intensity": 10 ** logI,
+                    "Eu": E_low
+                }
+
+                # Save max countQN for use elsewhere
+                max_qns = max(max_qns, countQN)
+
+                label_map = {0: "J", 1: "Ka", 2: "Kc"}
+
+                upper_start = 55
+                lower_start = 67
+
+                for i in range(countQN):
+                    qn_name = label_map.get(i, f"Q{i - 2}") if i > 2 else label_map[i]
+                    uq_label = f"Upper{qn_name}"
+                    lq_label = f"Lower{qn_name}"
+
+                    if upper_start + 2 <= len(line):
+                        entry[uq_label] = int(line[upper_start:upper_start+2].strip())
+                    if lower_start + 2 <= len(line):
+                        entry[lq_label] = int(line[lower_start:lower_start+2].strip())
+
+                    upper_start += 2
+                    lower_start += 2
+
+                sim_data.append(entry)
+
+            except Exception as e:
+                print(f"⚠️ Skipping line: {e}")
+                continue
+
+    df = pd.DataFrame(sim_data)
+
+    # Store list of QN columns in correct order
+    qn_order = []
+    for i in range(max_qns):
+        name = {0: "J", 1: "Ka", 2: "Kc"}.get(i, f"Q{i-2}" if i > 2 else f"Q{i}")
+        qn_order.append(f"Upper{name}")
+    for i in range(max_qns):
+        name = {0: "J", 1: "Ka", 2: "Kc"}.get(i, f"Q{i-2}" if i > 2 else f"Q{i}")
+        qn_order.append(f"Lower{name}")
+
+    return df, qn_order
+
+
+
+sim_df, qn_field_order = parse_cat_file(cat_file_path)
+
+
+def generate_hover(row):
+    hover = f"<b>Freq:</b> {row['Freq']:.2f} MHz<br>" \
+            f"<b>Intensity:</b> {row['Intensity']:.2e}<br>" \
+            f"<b>Eu:</b> {row['Eu']:.2f} cm⁻¹<br>"
+
+    upper_qns = [
+        f"{qn_label_map.get(k, k)}={row[k]}"
+        for k in row.index if k.startswith("Upper")
+    ]
+    lower_qns = [
+        f"{qn_label_map.get(k, k)}={row[k]}"
+        for k in row.index if k.startswith("Lower")
+    ]
+
+    hover += "<b>Upper:</b> " + " ".join(upper_qns) + "<br>"
+    hover += "<b>Lower:</b> " + " ".join(lower_qns)
+    return hover
+
+
 sim_df["Norm_Intensity"] = sim_df["Intensity"] / sim_df["Intensity"].max()
 sim_df["RoundedFreq"] = sim_df["Freq"].round(4)
 sim_df["StickX"] = sim_df["Freq"].apply(lambda f: [f, f, None])
 sim_df["StickY"] = sim_df["Norm_Intensity"].apply(lambda y: [0, y, None])
-sim_df["Hover"] = sim_df.apply(lambda row: f"<b>Freq:</b> {row['Freq']:.2f} MHz<br>"
-                                            f"<b>Intensity:</b> {row['Intensity']:.2e}<br>"
-                                            f"<b>Eu:</b> {row['Eu']:.2f} cm⁻¹<br>"
-                                            f"J′={row['UpperJ']} Ka′={row['UpperKa']} Kc′={row['UpperKc']} F′={row['UpperF']}<br>"
-                                            f"J″={row['LowerJ']} Ka″={row['LowerKa']} Kc″={row['LowerKc']} F″={row['LowerF']}", axis=1)
+sim_df["Hover"] = sim_df.apply(generate_hover, axis=1)
+
+def build_assignment_columns(sim_df, qn_field_order):
+    static_columns = [
+        {"name": "obs", "id": "obs", "type": "numeric", "format": {"specifier": ".4f"}},
+        {"name": "sim", "id": "sim", "type": "numeric", "format": {"specifier": ".4f"}},
+        {"name": "Eu", "id": "Eu", "type": "numeric", "format": {"specifier": ".2f"}},
+        {"name": "logI", "id": "logI", "type": "numeric", "format": {"specifier": ".2f"}},
+    ]
+
+    qn_columns = [
+        {"name": qn_label_map.get(col, col), "id": col}
+        for col in qn_field_order
+    ]
+
+    extra_columns = [
+        {"name": "Uncertainty", "id": "Uncertainty", "type": "numeric", "format": {"specifier": ".4f"}},
+        {"name": "Weight", "id": "Weight", "type": "numeric", "format": {"specifier": ".2f"}}
+    ]
+
+    return static_columns + qn_columns + extra_columns
+
+
+
 
 # === Load Measured Spectrum ===
 meas_df = pd.read_csv(csv_file_path, sep=";")
@@ -170,22 +237,7 @@ app.layout = html.Div([
     html.Button("Recalculate Weights", id="recalc-weights-button", n_clicks=0, style={"marginTop": "10px"}),
     dash_table.DataTable(
         id='assignment-table',
-        columns=[
-            {"name": "obs", "id": "obs", "type": "numeric", "format": {"specifier": ".4f"}},
-            {"name": "sim", "id": "sim", "type": "numeric", "format": {"specifier": ".4f"}},
-            {"name": "Eu", "id": "Eu", "type": "numeric", "format": {"specifier": ".2f"}},
-            {"name": "logI", "id": "logI", "type": "numeric", "format": {"specifier": ".2f"}},
-            {"name": "UpperJ", "id": "UpperJ"},
-            {"name": "UpperKa", "id": "UpperKa"},
-            {"name": "UpperKc", "id": "UpperKc"},
-            {"name": "UpperF", "id": "UpperF"},
-            {"name": "LowerJ", "id": "LowerJ"},
-            {"name": "LowerKa", "id": "LowerKa"},
-            {"name": "LowerKc", "id": "LowerKc"},
-            {"name": "LowerF", "id": "LowerF"},
-            {"name": "Uncertainty", "id": "Uncertainty", "type": "numeric", "format": {"specifier": ".4f"}},
-            {"name": "Weight", "id": "Weight", "type": "numeric", "format": {"specifier": ".2f"}},
-        ],
+        columns=build_assignment_columns(sim_df, qn_field_order),
         data=[],
         row_selectable="single",
         selected_rows=[],
@@ -407,16 +459,13 @@ def assign_by_region(n_clicks, current_assignments, filtered_sim_records, mode, 
             "sim": round(row["Freq"], 4),
             "Eu": round(row["Eu"], 4),
             "logI": round(np.log10(row["Intensity"]), 4),
-            "UpperJ": row["UpperJ"],
-            "UpperKa": row["UpperKa"],
-            "UpperKc": row["UpperKc"],
-            "UpperF": row["UpperF"],
-            "LowerJ": row["LowerJ"],
-            "LowerKa": row["LowerKa"],
-            "LowerKc": row["LowerKc"],
-            "LowerF": row["LowerF"],
             "Uncertainty": 0.01
         }
+
+        # Add QNs dynamically
+        for key in qn_field_order:
+            if key in row:
+                new_entry[key] = row[key]
         if new_entry not in current_assignments:
             current_assignments.append(new_entry)
 
@@ -595,55 +644,49 @@ def load_lin_file_from_path(n_clicks, filepath):
 
     for line in lines:
         try:
-            # Extract quantum numbers
             qns_raw = line[:24]
-            qns = [int(qns_raw[i:i+3]) for i in range(0, 24, 3)]
+            qns = [int(qns_raw[i:i+3]) for i in range(0, len(qns_raw), 3)]
 
             freq = float(line[49:61].strip())
             unc = float(line[61:71].strip())
             wt = float(line[71:77].strip())
 
-            # Match line in sim_df using quantum numbers
-            match = sim_df[
-                (sim_df["UpperJ"] == int(qns[0])) &
-                (sim_df["UpperKa"] == int(qns[1])) &
-                (sim_df["UpperKc"] == int(qns[2])) &
-                (sim_df["UpperF"] == int(qns[3])) &
-                (sim_df["LowerJ"] == int(qns[4])) &
-                (sim_df["LowerKa"] == int(qns[5])) &
-                (sim_df["LowerKc"] == int(qns[6])) &
-                (sim_df["LowerF"] == int(qns[7]))
-            ]
+            # Get dynamic QN field names
+            qn_fields = qn_field_order[:len(qns)]
 
 
-            if match.empty:
+            qn_values = qns[:len(qn_fields)]
+
+            # Match simulation line based on quantum numbers
+            match_df = sim_df.copy()
+            for field, value in zip(qn_fields, qn_values):
+                match_df = match_df[match_df[field] == value]
+
+            if match_df.empty:
                 print(f"⚠️ No match in sim_df for QNs: {qns}")
                 continue
 
-            sim_row = match.iloc[0]
+            sim_row = match_df.iloc[0]
 
             assignment = {
                 "obs": round(freq, 4),
                 "sim": round(sim_row["Freq"], 4),
                 "Eu": round(sim_row["Eu"], 4),
                 "logI": round(np.log10(sim_row["Intensity"]), 4),
-                "UpperJ": qns[0],
-                "UpperKa": qns[1],
-                "UpperKc": qns[2],
-                "UpperF": qns[3],
-                "LowerJ": qns[4],
-                "LowerKa": qns[5],
-                "LowerKc": qns[6],
-                "LowerF": qns[7],
                 "Uncertainty": round(unc, 4),
                 "Weight": round(wt, 4)
             }
+
+            # Add dynamic QNs to assignment
+            for field, value in zip(qn_fields, qn_values):
+                assignment[field] = value
 
             assignments.append(assignment)
 
         except Exception as e:
             print(f"⚠️ Failed to parse or match line: {line.strip()} — {e}")
             continue
+
 
     print(f"✅ Loaded {len(assignments)} assignments from .lin file")
     #print(f"⏱ lin file read in {time.perf_counter() - t0:.3f} s")
@@ -714,24 +757,15 @@ def generate_lin_file(assignments):
         unc = uncertainty_by_obs.get(row["obs"], 0.0100)
         wt = float(row.get("Weight", 1.00))
 
-        upper = (
-            int(row["UpperJ"]),
-            int(row["UpperKa"]),
-            int(row["UpperKc"]),
-            int(row["UpperF"])
-        )
-        lower = (
-            int(row["LowerJ"]),
-            int(row["LowerKa"]),
-            int(row["LowerKc"]),
-            int(row["LowerF"])
-        )
+        qn_values = [int(row[k]) for k in qn_field_order if k in row]
+        qn_str = "".join(f"{q:3d}" for q in qn_values)
+
+
 
         # Format: all 8 QNs (3 digits each), spacing, then freq, uncertainty, weight
         line = (
-            "".join(f"{q:3d}" for q in upper) +
-            "".join(f"{q:3d}" for q in lower) +
-            f"{'':25s}"
+            f"{qn_str:<24s}" +  # will adjust size dynamically
+            f"{'':25s}" +
             f"{freq:12.4f}{unc:10.4f}{wt:6.2f}"
         )
         lines.append(line)
@@ -751,8 +785,11 @@ def save_lin_file(n_clicks, assignments):
         return "❌ No assignments to save."
 
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    assignments_dir = os.path.join(os.getcwd(), "assignments")
+    os.makedirs(assignments_dir, exist_ok=True)  # ✅ Create directory if it doesn't exist
+
     filename = f"assignments_{timestamp}.lin"
-    filepath = os.path.join(os.getcwd(), filename)
+    filepath = os.path.join(assignments_dir, filename)
 
     content = generate_lin_file(assignments)
     with open(filepath, "w") as f:
@@ -852,5 +889,3 @@ def handle_fit_mu_and_keyboard(fit_params, n_clicks_list, n_keydowns, key_event,
 
 if __name__ == "__main__":
     app.run(debug=True, port=8050)
-
-

@@ -1,4 +1,16 @@
 {
   "cat_file": "/Users/lukasberger/Documents/pythonscripts/Molecules/5-cyanoacenaphthene/5-cyanoacenaphthene.cat",
-  "csv_file": "/Users/lukasberger/Documents/pythonscripts/Molecules/5-cyanoacenaphthene/Backup/5_cyanoacenaphthene_combined_spectrum.csv"
+  "csv_file": "/Users/lukasberger/Documents/pythonscripts/Molecules/5-cyanoacenaphthene/Backup/5_cyanoacenaphthene_combined_spectrum.csv",
+  "qn_labels": {
+    "UpperJ": "J",
+    "UpperKa": "Kₐ",
+    "UpperKc": "K_c",
+    "UpperQ1": "F1",
+    "UpperQ2": "F2",
+    "LowerJ": "J′",
+    "LowerKa": "Kₐ′",
+    "LowerKc": "K_c′",
+    "LowerQ1": "F1′",
+    "LowerQ2": "F2′"
+  }
 }
