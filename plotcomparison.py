@@ -15,6 +15,7 @@ import re
 import time
 from dash_extensions import Keyboard
 import json
+from collections import defaultdict, Counter
 
 # Load configuration
 with open("config.json", "r") as f:
@@ -86,6 +87,81 @@ def parse_cat_file(filepath):
 
 
 sim_df, qn_field_order = parse_cat_file(cat_file_path)
+
+from collections import defaultdict
+
+def recompute_peak_weights(assignments):
+    """
+    Recompute 'Weight' for each assignment based on simulated intensity
+    within the same observed peak.
+    The weights for each observed peak sum to 1.
+    """
+    import numpy as np
+
+    if not assignments:
+        return assignments
+
+    # group by observed peak
+    by_obs = defaultdict(list)
+    for i, r in enumerate(assignments):
+        by_obs[r["obs"]].append(i)
+
+    for obs, idxs in by_obs.items():
+        scores = []
+        for i in idxs:
+            r = assignments[i]
+            try:
+                strength = 10.0 ** float(r["logI"])  # convert log10(I) to I
+            except (ValueError, TypeError):
+                strength = 0.0
+            if not np.isfinite(strength) or strength < 0:
+                strength = 0.0
+            scores.append(strength)
+
+        ssum = sum(scores)
+        if ssum <= 0:
+            weights = [1.0 / len(idxs)] * len(idxs)  # equal split if all zero
+        else:
+            weights = [s / ssum for s in scores]
+
+        for i, w in zip(idxs, weights):
+            assignments[i]["Weight"] = round(w, 4)
+
+    return assignments
+
+def parse_lin_line_flexible(line):
+    """
+    Parse one .lin line assuming the numeric tail uses fixed widths:
+      freq:12.4f, unc:10.4f, wt:6.2f
+    Returns (qns_list, freq, unc, wt).
+    """
+    # remove trailing newline only
+    if line.endswith("\n"):
+        line = line[:-1]
+
+    if not line.strip():
+        raise ValueError("blank line")
+
+    WT_W, UNC_W, FREQ_W = 6, 10, 12
+
+    wt_str   = line[-WT_W:]
+    unc_str  = line[-(WT_W+UNC_W):-WT_W]
+    freq_str = line[-(WT_W+UNC_W+FREQ_W):-(WT_W+UNC_W)]
+
+    qns_raw = line[:-(WT_W+UNC_W+FREQ_W)].rstrip()  # left side incl. spacer
+
+    freq = float(freq_str.strip())
+    unc  = float(unc_str.strip())
+    wt   = float(wt_str.strip())
+
+    # QNs are 3-char chunks; ignore empty/pure-space chunks
+    qns = []
+    for i in range(0, len(qns_raw), 3):
+        chunk = qns_raw[i:i+3]
+        if chunk.strip():
+            qns.append(int(chunk))
+
+    return qns, freq, unc, wt
 
 
 def generate_hover(row):
@@ -164,18 +240,18 @@ app.layout = html.Div([
     # ✅ Keyboard listener here
     Keyboard(
         id="keyboard",
-        captureKeys=["q", "w", "e", "r", "a" , "d"] + [str(i) for i in range(1, 8)]
+        captureKeys=["q", "w", "e", "r", "a" , "d"] + [str(i) for i in range(0, 11)]
     ),
 
     html.Div([
         html.Label("Number of Gaussians to Fit:"),
         dcc.RadioItems(
             id='num-gaussians',
-            options=[{'label': f'{n}', 'value': n} for n in range(1, 8)],
+            options=[{'label': f'{n}', 'value': n} for n in range(1, 11)],
             value=1,
             labelStyle={'display': 'inline-block', 'marginRight': '10px'},
             inputStyle={'marginRight': '5px'},
-            style={'width': '350px'}
+            style={'width': '200px'}
         )
     ], style={'marginBottom': '20px'}),
 
@@ -439,10 +515,10 @@ def store_selection(selection):
     State("mode-selector", "value"),
     State("stored-region-selection", "data"),
     State("selected-fit-mu", "data"),
+    State("stored-fit-params", "data"),  # Needed for interference term
     prevent_initial_call=True
 )
-def assign_by_region(n_clicks, current_assignments, filtered_sim_records, mode, selection, selected_mu):
-    #t0 = time.perf_counter()
+def assign_by_region(n_clicks, current_assignments, filtered_sim_records, mode, selection, selected_mu, fit_params):
     if mode != "assign_all" or not selection or selected_mu is None:
         raise dash.exceptions.PreventUpdate
 
@@ -453,29 +529,81 @@ def assign_by_region(n_clicks, current_assignments, filtered_sim_records, mode, 
     # Ensure current_assignments is a list
     current_assignments = current_assignments or []
 
+    # === Add new assignments
     for _, row in in_range.iterrows():
         new_entry = {
             "obs": round(selected_mu, 4),
             "sim": round(row["Freq"], 4),
             "Eu": round(row["Eu"], 4),
-            "logI": round(np.log10(row["Intensity"]), 4),
-            "Uncertainty": 0.01
+            "logI": round(np.log10(row["Intensity"]), 4)
         }
-
-        # Add QNs dynamically
         for key in qn_field_order:
             if key in row:
                 new_entry[key] = row[key]
         if new_entry not in current_assignments:
             current_assignments.append(new_entry)
 
-    # Compute weights without removing data
-    obs_counts = pd.Series([entry["obs"] for entry in current_assignments]).value_counts().to_dict()
-    for entry in current_assignments:
-        entry["Weight"] = round(1 / obs_counts[entry["obs"]], 4)
     
-    #print(f"⏱ assign by region {time.perf_counter() - t0:.3f} s")
+
+
+    # === Group sim frequencies by observed frequency
+    sim_by_obs = defaultdict(list)
+    for row in current_assignments:
+        sim_by_obs[row["obs"]].append(row["sim"])
+
+    # === Merge term
+    sigma_merge = {
+        obs: ((max(sims) - min(sims))/2 if len(sims) > 1 else 0)
+        for obs, sims in sim_by_obs.items()
+    }
+
+    # === Interference term (all other obs)
+    obs_list = sorted(sim_by_obs.keys())
+    delta_F = 0.1  # MHz = 100 kHz
+    sigma_interf = {}
+    for i, oi in enumerate(obs_list):
+        sum_sq = 0.0
+        for j, oj in enumerate(obs_list):
+            if i == j:
+                continue
+            df = abs(oj - oi)
+            cij = 0.5 * df * (1.0 - float(np.tanh(df / delta_F)))
+            sum_sq += cij * cij
+        sigma_interf[oi] = np.sqrt(sum_sq)
+
+    # === Instrument term
+    # Estimate SNR for each obs
+    sigma_instrument = {}
+    baseline_width = (x1 - x0)  # same scale as your selection window
+    for obs in obs_list:
+        # Peak height at closest measured point
+        idx_peak = np.argmin(np.abs(meas_freqs - obs))
+        peak_height = meas_intensities[idx_peak]
+
+        # Baseline region: take ± baseline_width away from the peak
+        left_mask = (meas_freqs >= obs - 2*baseline_width) & (meas_freqs < obs - baseline_width)
+        right_mask = (meas_freqs > obs + baseline_width) & (meas_freqs <= obs + 2*baseline_width)
+        baseline_vals = np.concatenate([meas_intensities[left_mask], meas_intensities[right_mask]])
+        baseline_rms = np.std(baseline_vals) if len(baseline_vals) > 0 else 0.01  # avoid /0
+
+        SNR = peak_height / baseline_rms if baseline_rms > 0 else 1.0
+        sigma_instrument[obs] = np.sqrt((0.0575 / SNR) ** 2 + (0.01) ** 2)
+
+    # === Combine all terms in quadrature
+    uncertainty_by_obs = {
+        obs: round(np.sqrt(sigma_merge[obs] ** 2 +
+                           sigma_interf[obs] ** 2 +
+                           sigma_instrument[obs] ** 2), 4)
+        for obs in obs_list
+    }
+
+    # === Assign to rows + recompute weights
+    for row in current_assignments:
+        row["Uncertainty"] = uncertainty_by_obs[row["obs"]]
+
+    current_assignments = recompute_peak_weights(current_assignments)
     return current_assignments, current_assignments
+
 
 @app.callback(
     Output("spectrum-plot", "figure"),
@@ -485,7 +613,7 @@ def assign_by_region(n_clicks, current_assignments, filtered_sim_records, mode, 
     Input("mode-selector", "value"),
     Input("filtered-sim-data", "data"),
     Input("selected-fit-mu", "data"),
-    Input("flip-sim-checkbox", "value")  # 👈 ADD THIS LINE
+    Input("flip-sim-checkbox", "value")  
 )
 def update_plot(fit_params, assignments, zoom, mode, filtered_sim_records, selected_mu, flip_checkbox):
     #print(f"📦 filtered-sim-data size: {len(filtered_sim_records)}")
@@ -572,6 +700,45 @@ def update_plot(fit_params, assignments, zoom, mode, filtered_sim_records, selec
                 line=dict(color="green", dash="dot")
             ))
 
+    # === Fit sum curve (sum of Gaussians + baseline), limited to Gaussian span and current zoom
+    if fit_params and "multi" in fit_params and len(fit_params["multi"]) > 0:
+        # Envelope of all fitted Gaussians
+        x_env_min = min(float(p["mu"]) - 4.0 * float(p["sigma"]) for p in fit_params["multi"])
+        x_env_max = max(float(p["mu"]) + 4.0 * float(p["sigma"]) for p in fit_params["multi"])
+
+        # If zoomed, clip to visible x-range
+        if zoom and "x" in zoom and zoom["x"] is not None:
+            x_vis_min, x_vis_max = zoom["x"]
+            x_min = max(x_env_min, x_vis_min)
+            x_max = min(x_env_max, x_vis_max)
+        else:
+            x_min, x_max = x_env_min, x_env_max
+
+        # Build x-grid: prefer measured x within [x_min, x_max] for perfect overlay; fallback to linspace
+        if meas_freqs.size:
+            mask = (meas_freqs >= x_min) & (meas_freqs <= x_max)
+            x_grid = meas_freqs[mask]
+        else:
+            x_grid = np.array([])
+
+        if x_grid.size < 5:  # too sparse or outside data -> use synthetic grid
+            x_grid = np.linspace(x_min, x_max, 500)
+
+        baseline_val = float(fit_params.get("baseline", 0.0))
+        y_sum = np.full_like(x_grid, baseline_val, dtype=float)
+        for p in fit_params["multi"]:
+            y_sum += gaussian(x_grid, float(p["amp"]), float(p["mu"]), float(p["sigma"]))
+
+        fig.add_trace(go.Scatter(
+            x=x_grid, y=y_sum,
+            mode="lines",
+            name="Fit sum",
+            line=dict(color="yellow", width=1, dash="dot"),
+            opacity=0.5  # semi-transparent so dashed individuals remain visible
+        ))
+
+
+
     # === Assignment vertical lines (combined trace, much faster than add_shape)
     if assignments:
         # sim_lines = go.Scatter(
@@ -598,6 +765,40 @@ def update_plot(fit_params, assignments, zoom, mode, filtered_sim_records, selec
                 showlegend=False
             )
             fig.add_trace(obs_lines)
+
+    # >>> ADD: Uncertainty bands (light blue vrects per observed peak)
+    if assignments:
+        # Collect per-obs uncertainty (first occurrence wins)
+        obs_to_unc = {}
+        for r in assignments:
+            try:
+                obs_val = float(r.get("obs", None))
+                unc_val = r.get("Uncertainty", None)
+            except (TypeError, ValueError):
+                continue
+            if obs_val is None or unc_val is None:
+                continue
+            if obs_val not in obs_to_unc:
+                obs_to_unc[obs_val] = float(unc_val)
+
+        if obs_to_unc:
+            # Optional: only draw when reasonably zoomed-in to avoid clutter
+            draw_now = True
+            if zoom and "x" in zoom:
+                draw_now = (zoom["x"][1] - zoom["x"][0]) < 200  # tweak threshold if you like
+
+            if draw_now:
+                for obs_val, unc_val in obs_to_unc.items():
+                    x0 = obs_val - unc_val
+                    x1 = obs_val + unc_val
+                    fig.add_vrect(
+                        x0=x0, x1=x1,
+                        fillcolor="lightblue",  # or "rgba(30,144,255,0.12)"
+                        opacity=0.15,
+                        layer="below",
+                        line_width=0
+                    )
+
 
     # === Baseline line
     if fit_params and "baseline" in fit_params and "baseline_range" in fit_params:
@@ -641,51 +842,44 @@ def load_lin_file_from_path(n_clicks, filepath):
         return dash.no_update, dash.no_update
 
     assignments = []
-
-    for line in lines:
-        try:
-            qns_raw = line[:24]
-            qns = [int(qns_raw[i:i+3]) for i in range(0, len(qns_raw), 3)]
-
-            freq = float(line[49:61].strip())
-            unc = float(line[61:71].strip())
-            wt = float(line[71:77].strip())
-
-            # Get dynamic QN field names
-            qn_fields = qn_field_order[:len(qns)]
-
-
-            qn_values = qns[:len(qn_fields)]
-
-            # Match simulation line based on quantum numbers
-            match_df = sim_df.copy()
-            for field, value in zip(qn_fields, qn_values):
-                match_df = match_df[match_df[field] == value]
-
-            if match_df.empty:
-                print(f"⚠️ No match in sim_df for QNs: {qns}")
+    with open(filepath, "r") as f:
+        for raw in f:
+            if not raw.strip():
                 continue
+            try:
+                qns, freq, unc, wt = parse_lin_line_flexible(raw)
 
-            sim_row = match_df.iloc[0]
+                qn_fields = qn_field_order[:len(qns)]
+                qn_values = qns[:len(qn_fields)]
 
-            assignment = {
-                "obs": round(freq, 4),
-                "sim": round(sim_row["Freq"], 4),
-                "Eu": round(sim_row["Eu"], 4),
-                "logI": round(np.log10(sim_row["Intensity"]), 4),
-                "Uncertainty": round(unc, 4),
-                "Weight": round(wt, 4)
-            }
+                match_df = sim_df.copy()
+                for field, value in zip(qn_fields, qn_values):
+                    if field in match_df.columns:
+                        match_df = match_df[match_df[field] == value]
+                    else:
+                        match_df = match_df.iloc[0:0]
+                        break
 
-            # Add dynamic QNs to assignment
-            for field, value in zip(qn_fields, qn_values):
-                assignment[field] = value
+                if match_df.empty:
+                    continue
 
-            assignments.append(assignment)
+                sim_row = match_df.iloc[0]
+                assignment = {
+                    "obs": round(float(freq), 4),
+                    "sim": round(float(sim_row["Freq"]), 4),
+                    "Eu": round(float(sim_row["Eu"]), 4),
+                    "logI": round(np.log10(float(sim_row["Intensity"])), 4),
+                    "Uncertainty": round(float(unc), 4),
+                    "Weight": round(float(wt), 4)
+                }
+                for field, value in zip(qn_fields, qn_values):
+                    assignment[field] = value
 
-        except Exception as e:
-            print(f"⚠️ Failed to parse or match line: {line.strip()} — {e}")
-            continue
+                assignments.append(assignment)
+            except Exception:
+                # skip line on parse errors or just log if helpful
+                # print("bad line:", raw)
+                continue
 
 
     print(f"✅ Loaded {len(assignments)} assignments from .lin file")
@@ -703,32 +897,25 @@ def load_lin_file_from_path(n_clicks, filepath):
     prevent_initial_call=True
 )
 def update_assignments_table(selected_rows, recalc_clicks, current_data):
-    triggered_id = callback_context.triggered_id
+    trig = callback_context.triggered_id
 
     if not current_data:
         raise dash.exceptions.PreventUpdate
 
-    updated_data = current_data.copy()
+    updated = current_data.copy()
 
-    # ✅ Inline helper to recompute weights
-    def recompute_weights(assignments):
-        from collections import Counter
-        obs_counts = Counter(entry["obs"] for entry in assignments)
-        for entry in assignments:
-            entry["Weight"] = round(1 / obs_counts[entry["obs"]], 4)
-        return assignments
-
-    # If triggered by row selection, delete selected row
-    if triggered_id == "assignment-table":
+    # If triggered by row selection, delete selected row(s)
+    if trig == "assignment-table":
         if not selected_rows:
             raise dash.exceptions.PreventUpdate
-        updated_data = [row for i, row in enumerate(current_data) if i not in selected_rows]
+        to_drop = set(selected_rows)
+        updated = [row for i, row in enumerate(current_data) if i not in to_drop]
 
     # Recompute weights after either deletion or recalc button press
-    updated_data = recompute_weights(updated_data)
+    updated = recompute_peak_weights(updated)
 
-    return updated_data, updated_data, []
-
+    # Clear selection so the next click can delete another row
+    return updated, updated, []
 
 # === Save .lin File Callback ===
 def generate_lin_file(assignments):
@@ -740,22 +927,12 @@ def generate_lin_file(assignments):
     """
 
 
-    # Group sim frequencies by observed freq to compute spread
-    sim_by_obs = defaultdict(list)
-    for row in assignments:
-        sim_by_obs[row["obs"]].append(row["sim"])
-
-    # Uncertainty = spread + 0.01
-    uncertainty_by_obs = {
-        obs: round(max(sims) - min(sims) + 0.01, 4)
-        for obs, sims in sim_by_obs.items()
-    }
-
     lines = []
     for row in assignments:
         freq = float(row["obs"])
-        unc = uncertainty_by_obs.get(row["obs"], 0.0100)
+        unc = float(row.get("Uncertainty", 0.0100))
         wt = float(row.get("Weight", 1.00))
+
 
         qn_values = [int(row[k]) for k in qn_field_order if k in row]
         qn_str = "".join(f"{q:3d}" for q in qn_values)
@@ -844,8 +1021,8 @@ def handle_fit_mu_and_keyboard(fit_params, n_clicks_list, n_keydowns, key_event,
             undo_clicks = int(time.time())
         elif key == "a":
             assign_clicks = int(time.time())
-        elif key in [str(n) for n in range(1, 8)]:
-            num_gauss = int(key)
+        elif key in [str(n) for n in range(10)]:  # "0".."9"
+            num_gauss = 10 if key == "0" else int(key)
         elif key == "d" and fit_params_state and "multi" in fit_params_state:
             fits_sorted = sorted(fit_params_state["multi"], key=lambda p: p["mu"])
             mu_list = [round(p["mu"], 4) for p in fits_sorted]
