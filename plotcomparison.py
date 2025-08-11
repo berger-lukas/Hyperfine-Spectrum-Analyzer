@@ -16,6 +16,8 @@ import time
 from dash_extensions import Keyboard
 import json
 from collections import defaultdict, Counter
+from functools import lru_cache
+
 
 # Load configuration
 with open("config.json", "r") as f:
@@ -162,6 +164,25 @@ def parse_lin_line_flexible(line):
             qns.append(int(chunk))
 
     return qns, freq, unc, wt
+
+def decimate_xy(x, y, max_pts=3000):
+    """Downsample (uniformly) to at most max_pts points for faster plotting."""
+    n = x.size
+    if n <= max_pts:
+        return x, y
+    step = max(1, n // max_pts)
+    return x[::step], y[::step]
+
+@lru_cache(maxsize=64)
+def _fit_sum_cached(amps, mus, sigmas, baseline, x_min, x_max, npts):
+    """Cache the summed fit curve over [x_min, x_max] with npts samples."""
+    import numpy as np
+    x = np.linspace(x_min, x_max, npts)
+    y = np.full_like(x, baseline, dtype=float)
+    for A, M, S in zip(amps, mus, sigmas):
+        y += A * np.exp(-0.5 * ((x - M) / S) ** 2)
+    return x, y
+
 
 
 def generate_hover(row):
@@ -622,6 +643,19 @@ def update_plot(fit_params, assignments, zoom, mode, filtered_sim_records, selec
 
     sim_filtered_df = pd.DataFrame(filtered_sim_records)
 
+    # Choose measured subset by zoom and decimate for speed
+    if zoom and "x" in zoom:
+        x0z, x1z = zoom["x"]
+        mask_meas = (meas_freqs >= x0z) & (meas_freqs <= x1z)
+        x_meas = meas_freqs[mask_meas]
+        y_meas = meas_intensities[mask_meas]
+    else:
+        x_meas = meas_freqs
+        y_meas = meas_intensities
+
+    x_meas, y_meas = decimate_xy(x_meas, y_meas, max_pts=3000)
+
+
     # === Step 1: Filter by zoom once
     if zoom and "x" in zoom:
         sim_visible_df = sim_filtered_df[
@@ -641,7 +675,7 @@ def update_plot(fit_params, assignments, zoom, mode, filtered_sim_records, selec
     # === Step 3: Generate fast stick traces
     def get_stick_trace(df, color, name):
         if df.empty:
-            return go.Scatter(x=[], y=[])
+            return go.Scattergl(x=[], y=[])
         x = [v for sub in df["StickX"] for v in sub]
         y = [(-v if v is not None and "flip" in flip_checkbox else v) for sub in df["StickY"] for v in sub]
         hover = [val for h in df["Hover"] for val in (h, h, None)]
@@ -658,7 +692,7 @@ def update_plot(fit_params, assignments, zoom, mode, filtered_sim_records, selec
     fig = go.Figure([
         get_stick_trace(unassigned_lines, "red", "Simulated (unassigned)"),
         get_stick_trace(assigned_lines, "blue", "Simulated (assigned)"),
-        go.Scatter(
+        go.Scattergl(
             x=meas_freqs, y=meas_intensities,
             mode="lines",
             name="Measured",
@@ -694,11 +728,13 @@ def update_plot(fit_params, assignments, zoom, mode, filtered_sim_records, selec
         for p in fit_params["multi"]:
             x_fit = np.linspace(p["mu"] - 4 * p["sigma"], p["mu"] + 4 * p["sigma"], 100)
             y_fit = gaussian(x_fit, p["amp"], p["mu"], p["sigma"]) + baseline
-            fig.add_trace(go.Scatter(
+            fig.add_trace(go.Scattergl(
                 x=x_fit, y=y_fit, mode="lines",
                 name=f"μ={p['mu']:.2f}",
-                line=dict(color="green", dash="dot")
+                line=dict(color="green", dash="dot"),
+                hoverinfo="skip"
             ))
+
 
     # === Fit sum curve (sum of Gaussians + baseline), limited to Gaussian span and current zoom
     if fit_params and "multi" in fit_params and len(fit_params["multi"]) > 0:
@@ -706,7 +742,7 @@ def update_plot(fit_params, assignments, zoom, mode, filtered_sim_records, selec
         x_env_min = min(float(p["mu"]) - 4.0 * float(p["sigma"]) for p in fit_params["multi"])
         x_env_max = max(float(p["mu"]) + 4.0 * float(p["sigma"]) for p in fit_params["multi"])
 
-        # If zoomed, clip to visible x-range
+        # Clip to visible range if zoomed
         if zoom and "x" in zoom and zoom["x"] is not None:
             x_vis_min, x_vis_max = zoom["x"]
             x_min = max(x_env_min, x_vis_min)
@@ -714,28 +750,24 @@ def update_plot(fit_params, assignments, zoom, mode, filtered_sim_records, selec
         else:
             x_min, x_max = x_env_min, x_env_max
 
-        # Build x-grid: prefer measured x within [x_min, x_max] for perfect overlay; fallback to linspace
-        if meas_freqs.size:
-            mask = (meas_freqs >= x_min) & (meas_freqs <= x_max)
-            x_grid = meas_freqs[mask]
-        else:
-            x_grid = np.array([])
+        if x_max > x_min:
+            amps   = tuple(float(p["amp"])   for p in fit_params["multi"])
+            mus    = tuple(float(p["mu"])    for p in fit_params["multi"])
+            sigmas = tuple(float(p["sigma"]) for p in fit_params["multi"])
+            baseline_val = float(fit_params.get("baseline", 0.0))
 
-        if x_grid.size < 5:  # too sparse or outside data -> use synthetic grid
-            x_grid = np.linspace(x_min, x_max, 500)
+            # cache the sum curve; ~800 points is plenty
+            x_grid, y_sum = _fit_sum_cached(amps, mus, sigmas, baseline_val, float(x_min), float(x_max), 800)
 
-        baseline_val = float(fit_params.get("baseline", 0.0))
-        y_sum = np.full_like(x_grid, baseline_val, dtype=float)
-        for p in fit_params["multi"]:
-            y_sum += gaussian(x_grid, float(p["amp"]), float(p["mu"]), float(p["sigma"]))
+            fig.add_trace(go.Scattergl(
+                x=x_grid, y=y_sum,
+                mode="lines",
+                name="Fit sum",
+                line=dict(color="yellow", width=1, dash="dot"),
+                opacity=0.5,
+                hoverinfo="skip"
+            ))
 
-        fig.add_trace(go.Scatter(
-            x=x_grid, y=y_sum,
-            mode="lines",
-            name="Fit sum",
-            line=dict(color="yellow", width=1, dash="dot"),
-            opacity=0.5  # semi-transparent so dashed individuals remain visible
-        ))
 
 
 
@@ -766,50 +798,58 @@ def update_plot(fit_params, assignments, zoom, mode, filtered_sim_records, selec
             )
             fig.add_trace(obs_lines)
 
-    # >>> ADD: Uncertainty bands (light blue vrects per observed peak)
+    # === Uncertainty bands (light blue vrects per observed peak)
     if assignments:
         # Collect per-obs uncertainty (first occurrence wins)
         obs_to_unc = {}
         for r in assignments:
+            ov = r.get("obs"); uv = r.get("Uncertainty")
+            if ov is None or uv is None:
+                continue
             try:
-                obs_val = float(r.get("obs", None))
-                unc_val = r.get("Uncertainty", None)
+                ov = float(ov); uv = float(uv)
             except (TypeError, ValueError):
                 continue
-            if obs_val is None or unc_val is None:
-                continue
-            if obs_val not in obs_to_unc:
-                obs_to_unc[obs_val] = float(unc_val)
+            if ov not in obs_to_unc:
+                obs_to_unc[ov] = uv
 
-        if obs_to_unc:
-            # Optional: only draw when reasonably zoomed-in to avoid clutter
-            draw_now = True
-            if zoom and "x" in zoom:
-                draw_now = (zoom["x"][1] - zoom["x"][0]) < 200  # tweak threshold if you like
+        # Only draw when reasonably zoomed, and cap count
+        MAX_VRECTS = 80
+        MAX_SPAN_FOR_VRECTS = 150.0  # MHz
 
-            if draw_now:
-                for obs_val, unc_val in obs_to_unc.items():
-                    x0 = obs_val - unc_val
-                    x1 = obs_val + unc_val
-                    fig.add_vrect(
-                        x0=x0, x1=x1,
-                        fillcolor="lightblue",  # or "rgba(30,144,255,0.12)"
-                        opacity=0.15,
-                        layer="below",
-                        line_width=0
-                    )
+        draw_now = True
+        if zoom and "x" in zoom:
+            draw_now = (zoom["x"][1] - zoom["x"][0]) < MAX_SPAN_FOR_VRECTS
+
+        if draw_now:
+            x0z, x1z = (zoom["x"] if (zoom and "x" in zoom) else (float("-inf"), float("inf")))
+            visible_obs = [o for o in obs_to_unc.keys() if x0z <= o <= x1z]
+            visible_obs.sort(key=lambda v: abs((x0z + x1z)/2 - v))  # near center first
+            visible_obs = visible_obs[:MAX_VRECTS]
+
+            for ov in visible_obs:
+                uv = obs_to_unc[ov]
+                fig.add_vrect(
+                    x0=ov - uv, x1=ov + uv,
+                    fillcolor="lightblue",
+                    opacity=0.15,
+                    layer="below",
+                    line_width=0
+                )
+
 
 
     # === Baseline line
     if fit_params and "baseline" in fit_params and "baseline_range" in fit_params:
         base = fit_params["baseline"]
         x0, x1 = fit_params["baseline_range"]
-        fig.add_trace(go.Scatter(
+        fig.add_trace(go.Scattergl(
             x=[x0, x1],
             y=[base, base],
             mode="lines",
             name="Estimated Baseline",
-            line=dict(color="orange", dash="dash")
+            line=dict(color="orange", dash="dash"),
+            hoverinfo="skip",
         ))
 
     #print(f"⏱ update_plot completed in {time.perf_counter() - t0:.3f} s")
