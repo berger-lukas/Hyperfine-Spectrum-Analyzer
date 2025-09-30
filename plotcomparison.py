@@ -2071,4 +2071,4 @@ def handle_fit_mu_and_keyboard(fit_params, n_clicks_list, assign_n_clicks, n_key
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8061)
+    app.run(debug=False, port=8053)
