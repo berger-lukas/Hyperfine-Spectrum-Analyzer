@@ -73,15 +73,3 @@ python "plotcomparison.py"
 > Ensure your virtual environment is activated before running the script.
 
 ---
-
-## License
-
-> A license will be added before public release.  
-> Until then, please do not reuse, redistribute, or share this project outside the approved team.
-
----
-
-## Collaborators
-
-This is a private, in-progress project intended for internal collaboration.  
-Contact the repository owner for access or questions.
