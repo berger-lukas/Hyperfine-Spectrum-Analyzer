@@ -61,8 +61,9 @@ input[type="radio"] {
 /* === Dash DataTable === */
 .dash-table-container .dash-cell {
     background-color: #2c2c2c !important;
-    color: white !important;
+    /* color: white !important;  <-- remove this */
     border: 1px solid #444 !important;
+    color: #ddd;                 
 }
 
 .dash-table-container .dash-header {
