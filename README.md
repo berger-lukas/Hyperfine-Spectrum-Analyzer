@@ -41,6 +41,12 @@ plot-comparison/
 ├── requirements.txt         # Dependencies needed to run the project
 ├── assets/
 │   └── dark.css             # Optional CSS styling for visual output
+├── molecules/
+│   └── acenaphthene              
+|          └──  acenaphthene.cat             # test .cat file to try
+|          └── acenaphthene_measurement.csv             # test .csv file to try
+│   └── ethanol              
+|          └── ethanol.cat             # test .cat file to try
 └── .venv/                   # Local virtual environment (excluded from Git)
 ```
 
