@@ -1,6 +1,10 @@
 {
-  "cat_file": "/Users/lukasberger/Documents/pythonscripts/Molecules/5-cyanoacenaphthene/5-cyanoacenaphthene.cat",
-  "csv_file": "/Users/lukasberger/Documents/pythonscripts/Molecules/5-cyanoacenaphthene/Backup/5_cyanoacenaphthene_combined_spectrum.csv",
+  "cat_files": [
+    "molecules/acenaphthene/acenaphthene.cat",
+    "molecules/ethanol/ethanol.cat"
+  ],
+  "csv_file": "molecules/acenaphthene/acenaphthene_measurement.csv",
+
   "qn_labels": {
     "UpperJ": "J",
     "UpperKa": "Kₐ",
@@ -12,5 +16,10 @@
     "LowerKc": "K_c′",
     "LowerQ1": "F1′",
     "LowerQ2": "F2′"
+  },
+
+  "uncertainty": {
+    "fid_time_us": 25.0,
+    "base_sigma_instr_mhz": 0.01
   }
 }
