@@ -12,6 +12,7 @@ It uses a configuration file for inputs and an external CSS file for visual them
 ```bash
 git clone https://github.com/berger-lukas/Hyperfine-Spectrum-Analyzer
 ```
+and navigate into the new created folder Hyperfine-Spectrum-Analyzer
 
 ### 2. Set Up a Virtual Environment
 
@@ -67,9 +68,9 @@ You can customize colors, fonts, or layout by editing `assets/dark.css`.
 After setting up the environment and configuration, run the tool with:
 
 ```bash
-python "plotcomparison.py"
+python plotcomparison.py
 ```
 
-> Ensure your virtual environment is activated before running the script.
+> Ensure your virtual environment is activated before running the script. Open your browser at http://127.0.0.1:8053
 
 ---
