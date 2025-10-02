@@ -34,7 +34,7 @@ pip install -r requirements.txt
 ##  Project Structure
 
 ```
-plot-comparison/
+Hyperfine-Spectrum-Analyzer/
 │
 ├── plot comparison.py       # Main script for running plot comparison
 ├── config.json              # Configuration file (input)
@@ -71,12 +71,16 @@ You can customize colors, fonts, or layout by editing `assets/dark.css`.
 
 ## Running the Script
 
+> Ensure your virtual environment is activated before running the script.
+(go into the Hyperfine-Spectrum-Analyzer and "run source venv/bin/activate")
 After setting up the environment and configuration, run the tool with:
 
 ```bash
 python plotcomparison.py
 ```
 
-> Ensure your virtual environment is activated before running the script. Open your browser at http://127.0.0.1:8053
+>
+> Open your browser at http://127.0.0.1:8053
 
 ---
+
