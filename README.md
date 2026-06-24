@@ -7,6 +7,8 @@ It uses a configuration file for inputs and an external CSS file for visual them
 
 ## Getting Started
 
+This project is tested with Python 3.13.
+
 ### 1. Clone the Repository
 
 ```bash
@@ -23,12 +25,14 @@ source venv/bin/activate      # On macOS/Linux
 venv\Scripts\activate         # On Windows
 ```
 
+Depending on your system, you may need to use python3 instead.
+
 ### 3. Install Dependencies
 
 ```bash
+pip install --upgrade pip
 pip install -r requirements.txt
 ```
-
 ---
 
 ##  Project Structure
