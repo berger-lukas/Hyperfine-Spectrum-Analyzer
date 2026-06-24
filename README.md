@@ -82,7 +82,7 @@ After setting up the environment and configuration, run the tool with:
 ```bash
 python plotcomparison.py
 ```
-
+The first startup may take a little longer while the application initializes. This can take up to a minute. Future startups should be much faster.
 >
 > Open your browser at http://127.0.0.1:8053
 
