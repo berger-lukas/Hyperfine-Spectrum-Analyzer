@@ -210,6 +210,7 @@ __marimo__/
 
 # Local v7 work: never publish experimental assignments or machine paths.
 .venv-release/
+.venv-ci/
 .v7-test-output/
 .assigner-history/
 **/.assigner-history/

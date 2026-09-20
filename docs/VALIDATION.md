@@ -14,6 +14,7 @@ Publication preparation: 2026-09-19. Upstream baseline:
 | CLI startup | `plotcomparison_2026_7.py --help` passed |
 | Public upstream example | Loaded both supplied catalogs and the measured spectrum |
 | Browser smoke check | Configuration page, main plot, Fitting Space and Edit Configuration opened; dark styling present |
+| Exported source ZIP | Extracted independently; same 22-test suite passed (2 Windows skips) |
 | Original content | Original entry point, dependency files, license and public example files retained |
 
 The two default skips are the POSIX execute-permission test on Windows and the
@@ -49,6 +50,11 @@ package. Maintainers can reproduce the workflow with their own approved test
 case as described below.
 
 ## Not yet claimed
+
+The first hosted matrix exposed unrelated preinstalled `pipx` metadata in the
+Windows 3.12 runner (`packaging>=26` versus the application's pinned 25.0).
+CI now creates a clean virtual environment on every platform, matching the
+documented installation instead of sharing the hosted system environment.
 
 - No local macOS or Linux machine was available for execution in this pass.
 - `.github/workflows/v7-tests.yml` defines Windows/macOS/Linux × Python
