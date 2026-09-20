@@ -49,17 +49,33 @@ Scientific files and detailed logs are deliberately excluded from the public
 package. Maintainers can reproduce the workflow with their own approved test
 case as described below.
 
-## Not yet claimed
+## Hosted cross-platform checks — passed
+
+[GitHub Actions run 35487356545](https://github.com/berger-lukas/Hyperfine-Spectrum-Analyzer/actions/runs/35487356545)
+passed all six jobs for code/CI commit
+`7bca7403b1c639f78f6dfcc638bbc92dde072771`:
+
+| Hosted runner | Python 3.11 | Python 3.12 |
+|---|---|---|
+| Windows | Passed | Passed |
+| macOS | Passed | Passed |
+| Ubuntu Linux | Passed | Passed |
+
+Every job installed the release dependencies in a clean venv, ran `pip check`,
+the portable suite and CLI startup. POSIX jobs also exercised execute-permission
+validation. The opt-in external-binary test remained skipped on hosted runners.
+These results cover the specific hosted images, not every OS version or chip.
 
 The first hosted matrix exposed unrelated preinstalled `pipx` metadata in the
 Windows 3.12 runner (`packaging>=26` versus the application's pinned 25.0).
 CI now creates a clean virtual environment on every platform, matching the
 documented installation instead of sharing the hosted system environment.
 
+## Not yet claimed
+
 - No local macOS or Linux machine was available for execution in this pass.
-- `.github/workflows/v7-tests.yml` defines Windows/macOS/Linux × Python
-  3.11/3.12. Review the actual GitHub Actions results after upload; merely adding
-  the workflow does not establish a pass on those platforms.
+- The six hosted jobs above passed; that does not replace manual UI testing or
+  real Pickett runs on macOS/Linux hardware.
 - Native external-program integration on Mac/Linux still requires a platform
   smoke test. Hosted CI does not install or redistribute Pickett executables.
 - Python 3.13+ and unlisted architectures are outside the reference setup.

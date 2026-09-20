@@ -73,8 +73,8 @@ over the upstream file while omitting support modules. See [migration](docs/RELE
 
 ### Validation and remaining limits
 
-See [the validation record](docs/VALIDATION.md) for actual checks. CI configuration
-is not a claim that all target operating systems have passed. Use the release
-candidate designation until those checks and platform smoke tests are complete.
+See [the validation record](docs/VALIDATION.md): Windows/macOS/Linux × Python
+3.11/3.12 all passed the isolated CI suite. Keep the release candidate designation
+until native external-program and manual platform smoke tests are complete.
 Known parsing, calibration and single-user limits are listed in the installation
 guide. No new physical model or molecular constants are supplied by this release.
