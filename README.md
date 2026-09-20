@@ -4,7 +4,7 @@ An interactive local workspace for comparing measured rotational spectra with SP
 
 **Release candidate: 7.0.0-rc.1.** This branch extends the original project by Lukas Berger. The original `plotcomparison.py`, dependency files, license, and public molecular examples are retained. Start `plotcomparison_2026_7.py` for v7.
 
-**[中文安装指南](docs/INSTALL_zh-CN.md)** · **[English installation](docs/INSTALL.md)** · **[Changes](CHANGELOG.md)** · **[Upgrading / publishing](docs/RELEASING.md)** · **[Original instructions](docs/LEGACY_README.md)**
+**[Installation guide](docs/INSTALL.md)** · **[Changes](CHANGELOG.md)** · **[Upgrading / publishing](docs/RELEASING.md)** · **[Original instructions](docs/LEGACY_README.md)**
 
 ## First start
 

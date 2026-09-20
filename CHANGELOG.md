@@ -59,7 +59,7 @@ implementation distributable and improves portability, tests and documentation.
 - Add `requirements-v7.txt` without changing upstream dependency files:
   NumPy 2.0.2 and SciPy 1.13.1 match the development environment; upstream's main
   requirements instead pin NumPy 2.2 and SciPy 1.15. Other listed pins match.
-- Add Windows/macOS/Linux CI on Python 3.11/3.12, bilingual installation and
+- Add Windows/macOS/Linux CI on Python 3.11/3.12, English installation and
   external-program setup, migration, release guidance, and validation status.
 - Exclude personal configs, autosaves, assignments, test outputs, environments
   and backup histories from the distributable source package.

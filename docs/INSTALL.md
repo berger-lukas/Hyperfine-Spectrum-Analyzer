@@ -1,6 +1,6 @@
 # Install and configure v7
 
-[中文](INSTALL_zh-CN.md) · [Back to README](../README.md)
+[Back to README](../README.md)
 
 ## 1. Choose an installation
 

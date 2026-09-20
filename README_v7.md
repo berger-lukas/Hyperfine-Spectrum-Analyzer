@@ -1,17 +1,20 @@
 # Hyperfine Interactive Spectrum Assigner v7
 
-本发布候选版：**7.0.0-rc.1**。启动入口为 `plotcomparison_2026_7.py`。
-原始 `plotcomparison.py` 保留。原本地 `_6.py` 不参与这次发布，也没有被覆盖。
+Release candidate: **7.0.0-rc.1**. Start `plotcomparison_2026_7.py`.
+The original `plotcomparison.py` is retained. The local `_6.py` development
+version is not included in this release and has not been overwritten.
 
-- [完整中文安装与 SPFIT/SPCAT 配置指南](docs/INSTALL_zh-CN.md)
-- [English setup guide](docs/INSTALL.md)
-- [版本升级说明](CHANGELOG.md)
-- [已有用户迁移、GitHub 分支上传与版本发布建议](docs/RELEASING.md)
-- [测试记录与平台验证边界](docs/VALIDATION.md)
+- [Installation and SPFIT/SPCAT configuration](docs/INSTALL.md)
+- [Detailed release notes](CHANGELOG.md)
+- [Migration, GitHub branches and release guidance](docs/RELEASING.md)
+- [Test results and platform validation limits](docs/VALIDATION.md)
 
-使用完整项目及 `requirements-v7.txt`，不要只复制主脚本。推荐 Python 3.11。
-新增的三个自带模块和完整 `assets/` 文件夹必须与入口脚本一起保留。
-个人配置、指认、自动保存和分子工作文件不包含在发布包中。
+Download the complete project and install `requirements-v7.txt`; do not copy
+only the main script. Python 3.11 is the reference version. Keep all three
+`spectrum_*_v7.py` support modules and the entire `assets/` folder alongside
+the entry point. Personal configurations, assignments, autosaves and private
+molecular working files are excluded from the release archive.
 
-打开 http://127.0.0.1:8053/；端口占用时通过 `--port 8054` 启动。
-本轮只整理、修复并验证已有功能，没有新增程序路径设置窗口。
+Open http://127.0.0.1:8053/. If the port is occupied, start with `--port 8054`.
+This publication pass packages, fixes and validates existing functionality;
+it does not add a new executable-path settings dialog.
