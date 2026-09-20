@@ -1,0 +1,18 @@
+.cfg-dialog {width:min(960px,90vw);max-height:88vh;overflow:auto;padding:26px;background:#202934;color:#edf2f8;border:1px solid #63778c;border-radius:12px;font-family:Arial,sans-serif;box-sizing:border-box;}
+.cfg-dialog::backdrop {background:#000a;}
+.cfg-dialog h2 {margin-top:0;color:#edf2f8;}
+.cfg-dialog label {display:block;margin:14px 0 8px;color:#edf2f8;}
+.cfg-dialog input,.cfg-dialog select {background:#141d27;color:#edf2f8;padding:10px;border:1px solid #62758b;border-radius:4px;box-sizing:border-box;}
+.cfg-dialog #cfg-name {width:100%;}
+.cfg-spec-row,.cfg-cat-row,.cfg-browser-path {display:flex;gap:9px;align-items:center;margin:8px 0;}
+.cfg-spec-row input,.cfg-cat-row input,.cfg-browser-path input {flex:1;min-width:50px;}
+.cfg-dialog button {background:#344c65;color:#fff;border:1px solid #65809c;border-radius:5px;padding:9px 13px;cursor:pointer;}
+.cfg-dialog button:disabled {opacity:.5;cursor:wait;}
+.cfg-actions {display:flex;gap:12px;justify-content:flex-end;margin-top:20px;}
+.cfg-help,#cfg-count {font-size:13px;color:#b5c5d5;line-height:1.5;}
+.cfg-error,.cfg-picker-error {color:#ffc477;white-space:pre-wrap;}
+#cfg-cats {max-height:30vh;overflow:auto;}
+#cfg-add {display:flex;gap:10px;margin-top:12px;}
+.cfg-files {height:42vh;overflow:auto;background:#151f2a;padding:12px;}
+.cfg-files button,.cfg-files label {display:block;width:100%;text-align:left;margin:3px 0;padding:9px;box-sizing:border-box;}
+.cfg-files label input {margin-right:12px;}

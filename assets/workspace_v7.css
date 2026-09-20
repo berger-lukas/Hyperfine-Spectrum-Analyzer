@@ -1,0 +1,15 @@
+.ws-root {padding: 18px 24px; max-width: 1900px; margin: auto;}
+.ws-toolbar {display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 12px 0;}
+.ws-toolbar > div {min-width: 240px;}
+.ws-root .Select-value-label, .ws-root .Select-input > input {color: #f2f5fa !important;}
+.ws-root .Select-option, .ws-root .VirtualizedSelectOption {color: #f2f5fa; background: #293340;}
+.ws-root .VirtualizedSelectFocusedOption {background: #3d536c !important;}
+#ws-context, #ws-editor-path {overflow-wrap: anywhere; color: #acbacb; margin: 12px 0; font-family: monospace;}
+#ws-refresh-status, #ws-file-status, #ws-run-status {white-space: pre-wrap; color: #f0c674; margin: 10px 0;}
+.ws-editor {width: 100%; height: 42vh; min-height: 260px; box-sizing: border-box; font: 15px/1.55 Consolas, monospace; tab-size: 3; white-space: pre; overflow: auto; padding: 16px; border-color: #566c86;}
+.ws-editor-wrap {display: flex; margin: 10px 0;}
+#ws-line-numbers {margin: 0; padding: 16px 10px; min-width: 42px; text-align: right; color: #8291a3; background: #18212c; font: 15px/1.55 Consolas, monospace; height: 42vh; min-height: 260px; overflow: hidden; box-sizing: border-box; user-select: none;}
+.ws-console {height: 260px; overflow: auto; white-space: pre-wrap; background: #101820; color: #c4dfce; padding: 16px; border: 1px solid #3a4f60; font: 14px/1.5 Consolas, monospace;}
+#ws-enter, #ws-back {background: #24617c; padding: 14px 22px;}
+#ws-fitting .tab {background: #27323e !important; color: #bac7d6 !important; border-color: #425166 !important;}
+#ws-fitting .tab--selected {background: #365a74 !important; color: white !important;}

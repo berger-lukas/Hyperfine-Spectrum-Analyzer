@@ -207,3 +207,16 @@ marimo/_lsp/
 __marimo__/
 *.pyc
 .DS_Store
+
+# Local v7 work: never publish experimental assignments or machine paths.
+.venv-release/
+.v7-test-output/
+.assigner-history/
+**/.assigner-history/
+autosave/
+assignments/
+config-*.json
+config.*backup*.json
+*.assigner-tmp
+*.log
+*.code-workspace

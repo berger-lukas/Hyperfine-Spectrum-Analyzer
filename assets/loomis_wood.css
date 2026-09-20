@@ -1,0 +1,234 @@
+.lw-panel {
+  margin: 10px 0 20px;
+  padding: 0 16px 16px;
+  border: 1px solid #59636e;
+  border-radius: 8px;
+  background: #202428;
+  color: #f4f6f8;
+}
+
+.lw-panel > summary {
+  padding: 13px 2px !important;
+  color: #ffffff;
+  border-bottom: 1px solid transparent;
+}
+
+.lw-panel[open] > summary {
+  margin-bottom: 14px;
+  border-bottom-color: #4b545d;
+}
+
+.lw-toolbar-grid {
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) 170px 112px 100px 112px;
+  gap: 12px;
+  align-items: end;
+}
+
+.lw-filter-field,
+.lw-field {
+  min-width: 0;
+}
+
+.lw-filter-field > label,
+.lw-field > label {
+  display: block;
+  min-height: 19px;
+  margin: 0 0 5px;
+  color: #dce3e9;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.lw-filter-field input,
+.lw-field input,
+.lw-builder-controls input[type="number"] {
+  box-sizing: border-box;
+  width: 100% !important;
+  height: 38px;
+  padding: 7px 10px;
+  border: 1px solid #6f7a84 !important;
+  border-radius: 5px;
+  outline: none;
+  background: #2b3036 !important;
+  color: #ffffff !important;
+  font-size: 14px;
+}
+
+.lw-filter-field input:focus,
+.lw-field input:focus,
+.lw-builder-controls input[type="number"]:focus {
+  border-color: #4c8bf5 !important;
+  box-shadow: 0 0 0 2px rgba(76, 139, 245, 0.28);
+}
+
+.lw-builder-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(310px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.lw-builder-controls {
+  display: grid;
+  grid-template-columns: max-content minmax(82px, 1fr) 72px 82px max-content;
+  gap: 7px;
+  align-items: center;
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid #4c5660;
+  border-radius: 7px;
+  background: #292e33;
+}
+
+.lw-builder-controls:nth-child(3) {
+  grid-template-columns: max-content minmax(110px, 1fr) 92px minmax(145px, 1.25fr) max-content;
+}
+
+.lw-builder-controls > span {
+  color: #e8edf1;
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.lw-builder-controls button,
+.lw-actions button {
+  min-height: 36px;
+  padding: 7px 13px;
+  border: 1px solid #77828d;
+  border-radius: 5px;
+  background: #3c444c;
+  color: #ffffff;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.lw-builder-controls button:hover,
+.lw-actions button:hover {
+  border-color: #9fb5c7;
+  background: #4a5560;
+}
+
+.lw-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 14px 0 10px;
+  padding: 10px 0 2px;
+}
+
+.lw-actions label {
+  margin-right: 14px;
+  color: #f3f5f7;
+  white-space: nowrap;
+}
+
+.lw-actions input[type="checkbox"] {
+  margin-right: 5px;
+  accent-color: #4c8bf5;
+}
+
+#lw-status {
+  padding: 6px 9px;
+  border-radius: 4px;
+  background: #16191c;
+  color: #cdd7df;
+  font-size: 12px;
+}
+
+.lw-graph-frame {
+  max-height: 620px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid #7d8790;
+  border-radius: 6px;
+  background: #202428;
+}
+
+.lw-graph-frame .js-plotly-plot {
+  cursor: crosshair;
+}
+
+/* Dash 3 currently uses the React-Select v1 class names below.  Scope every
+   override to the L-W panel so the existing application theme is untouched. */
+.lw-panel .lw-dropdown .Select-control,
+.lw-panel .lw-dropdown .Select-menu-outer,
+.lw-panel .lw-dropdown .Select-menu {
+  border-color: #6f7a84 !important;
+  background: #2b3036 !important;
+  color: #ffffff !important;
+}
+
+.lw-panel .lw-dropdown .Select-control {
+  height: 38px;
+  border-radius: 5px;
+}
+
+.lw-panel .lw-dropdown .Select-value,
+.lw-panel .lw-dropdown .Select-value-label,
+.lw-panel .lw-dropdown .Select-placeholder,
+.lw-panel .lw-dropdown .Select-input,
+.lw-panel .lw-dropdown .Select-input > input {
+  color: #ffffff !important;
+}
+
+.lw-panel .lw-dropdown .Select-value,
+.lw-panel .lw-dropdown .Select-input,
+.lw-panel .lw-dropdown .Select-input > input {
+  background: #2b3036 !important;
+}
+
+.lw-panel .lw-dropdown .Select-value,
+.lw-panel .lw-dropdown .Select-placeholder {
+  line-height: 36px !important;
+}
+
+.lw-panel .lw-dropdown .Select-arrow {
+  border-top-color: #dfe5ea !important;
+}
+
+.lw-panel .lw-dropdown .Select-option {
+  padding: 8px 10px;
+  background: #2b3036 !important;
+  color: #ffffff !important;
+}
+
+.lw-panel .lw-dropdown .Select-option.is-focused,
+.lw-panel .lw-dropdown .Select-option:hover {
+  background: #46515b !important;
+  color: #ffffff !important;
+}
+
+.lw-panel .lw-dropdown .Select-option.is-selected {
+  background: #596672 !important;
+  color: #ffffff !important;
+  font-weight: 650;
+}
+
+.lw-qn-dropdown { min-width: 88px; }
+.lw-op-dropdown { min-width: 70px; }
+.lw-series-dropdown { min-width: 118px; }
+.lw-component-dropdown { min-width: 150px; }
+
+@media (max-width: 1500px) {
+  .lw-toolbar-grid {
+    grid-template-columns: minmax(300px, 2fr) repeat(3, minmax(110px, 1fr));
+  }
+  .lw-filter-field { grid-column: 1 / -1; }
+  .lw-builder-grid { grid-template-columns: 1fr 1fr; }
+  .lw-builder-controls:nth-child(3) { grid-column: 1 / -1; }
+}
+
+@media (max-width: 720px) {
+  .lw-toolbar-grid { grid-template-columns: 1fr 1fr; }
+  .lw-field:first-of-type { grid-column: 1 / -1; }
+  .lw-builder-grid { grid-template-columns: 1fr; }
+  .lw-builder-controls:nth-child(3) { grid-column: auto; }
+  .lw-builder-controls,
+  .lw-builder-controls:nth-child(3) {
+    grid-template-columns: 1fr 1fr;
+  }
+  .lw-builder-controls > span { grid-column: 1 / -1; }
+}

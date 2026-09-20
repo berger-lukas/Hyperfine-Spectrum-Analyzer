@@ -1,0 +1,25 @@
+name: Assigner v7 portability
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ['3.11', '3.12']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: requirements-v7.txt
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -r requirements-v7.txt
+      - run: python -m pip check
+      - run: python -B -m unittest test_intensity_v7 test_workspace_v7 test_portability_v7
+      - run: python -B plotcomparison_2026_7.py --help
